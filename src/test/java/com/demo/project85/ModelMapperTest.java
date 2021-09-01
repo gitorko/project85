@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.modelmapper.AbstractConverter;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
@@ -20,9 +19,9 @@ public class ModelMapperTest {
 
     @Test
     public void test_directCall() {
+        Person person = getPerson();
         ModelMapper modelMapper = new ModelMapper();
         modelMapper.addMappings(personMap);
-        Person person = getPerson();
         PersonView personView = modelMapper.map(person, PersonView.class);
         log.info("personView: {}", personView);
         Assertions.assertEquals(personView.getFirstName(), person.getFirstName());
@@ -36,22 +35,31 @@ public class ModelMapperTest {
         PersonView personView = modelMapper
                 .typeMap(Person.class, PersonView.class)
                 .addMappings(mapper -> {
-                    mapper.using(toUppercase2)
+                    mapper.using(toUppercase)
                         .map(src -> src.getFamilyName(), PersonView::setLastName);
                     mapper.using(workStatusConvertor)
                             .map(src -> src.getWorkStatus(), PersonView::setWorkStatusName);
-                    mapper.map(src -> src.getAge(), PersonView::setAgeStr);
+                    mapper.map(Person::getAge, PersonView::setAgeStr);
                 })
                 .map(person);
         log.info("personView: {}", personView);
         Assertions.assertEquals(personView.getFirstName(), person.getFirstName());
         Assertions.assertEquals(personView.getLastName(), person.getFamilyName().toUpperCase());
+        Assertions.assertEquals(personView.getAgeStr(), String.valueOf(person.getAge()));
     }
 
     @Test
     public void test_genericHelperClass() {
         Person person = getPerson();
         MapperHelper<Person, PersonView> entityMapperHelper = new MapperHelper<>(Person.class, PersonView.class);
+        entityMapperHelper.mapper.typeMap(Person.class, PersonView.class)
+                .addMappings(mapper -> {
+                    mapper.using(toUppercase)
+                            .map(src -> src.getFamilyName(), PersonView::setLastName);
+                    mapper.using(workStatusConvertor)
+                            .map(src -> src.getWorkStatus(), PersonView::setWorkStatusName);
+                    mapper.map(Person::getAge, PersonView::setAgeStr);
+                });
         PersonView personView = entityMapperHelper.toModel(person);
         log.info("personView: {}", personView);
         Assertions.assertEquals(personView.getFirstName(), person.getFirstName());
@@ -72,13 +80,7 @@ public class ModelMapperTest {
         }
     };
 
-    Converter<String, String> toUppercase = new AbstractConverter<String, String>() {
-        protected String convert(String source) {
-            return source == null ? null : source.toUpperCase();
-        }
-    };
-
-    Converter<String, String> toUppercase2 =
+    Converter<String, String> toUppercase =
             context -> context.getSource() == null ? null : context.getSource().toUpperCase();
 
     Converter<WorkStatus, String> workStatusConvertor =
@@ -90,11 +92,13 @@ public class ModelMapperTest {
                 .firstName("luke")
                 .familyName("skywalker")
                 .age(30)
+                .workStatus(WorkStatus.EMPLOYEED)
                 .build());
         personList.add(Person.builder()
                 .firstName("han")
                 .familyName("solo")
                 .age(35)
+                .workStatus(WorkStatus.EMPLOYEED)
                 .build());
         return personList;
     }
