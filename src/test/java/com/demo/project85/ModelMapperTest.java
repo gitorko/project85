@@ -57,6 +57,15 @@ public class ModelMapperTest {
         Assertions.assertEquals(personView.getFirstName(), person.getFirstName());
     }
 
+    @Test
+    public void test_listConvertGenericHelperClass() {
+        List<Person> personList = getListOfPersons();
+        MapperHelper<Person,PersonView> entityMapperHelper = new MapperHelper<>(Person.class, PersonView.class);
+        List<PersonView> personViewList = entityMapperHelper.toListModel(personList);
+        log.info("personView: {}", personViewList);
+        Assertions.assertEquals(personViewList.size(), personList.size());
+    }
+
     PropertyMap<Person, PersonView> personMap = new PropertyMap<>() {
         protected void configure() {
             using(toUppercase).map().setLastName(source.getFamilyName());
