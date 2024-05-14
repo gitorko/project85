@@ -13,9 +13,25 @@ import org.junit.jupiter.api.Test;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
+import org.modelmapper.TypeMap;
 
 @Slf4j
 public class ModelMapperTest {
+
+    @Test
+    public void test_inlineCall() {
+        Person person = getPerson();
+        ModelMapper modelMapper = new ModelMapper();
+        TypeMap<Person, PersonView> typeMap = modelMapper.createTypeMap(Person.class, PersonView.class);
+        typeMap.addMappings(mapper -> {
+            mapper.map(Person::getFirstName, PersonView::setFirstName);
+            mapper.map(Person::getFamilyName, PersonView::setLastName);
+        });
+        PersonView personView = modelMapper.map(person, PersonView.class);
+        log.info("personView: {}", personView);
+        Assertions.assertEquals(personView.getFirstName(), person.getFirstName());
+        Assertions.assertEquals(personView.getLastName(), person.getFamilyName());
+    }
 
     @Test
     public void test_directCall() {
